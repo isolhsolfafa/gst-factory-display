@@ -37,6 +37,11 @@
       from { opacity: 0; }
       to { opacity: 1; }
     }
+    .error {
+      color: red;
+      font-size: 14px;
+      text-align: center;
+    }
   </style>
 </head>
 <body>
@@ -45,38 +50,64 @@
   </div>
 
   <script>
-    fetch('data.json')
-      .then(response => response.json())
-      .then(data => {
-        // 슬라이드 카드 생성
-        const cardsContainer = document.getElementById('cards');
-        data.predictions.forEach((item, index) => {
-          const card = document.createElement('div');
-          card.className = 'card';
-          card.style.display = index === 0 ? 'block' : 'none';
-          card.innerHTML = `
-            <h3>${item.모델} <span style='font-size:14px'>(${item.예상불량률.toFixed(1)}%)</span></h3>
-            <p>🛠 불량유형: <b>${item.불량유형}</b></p>
-            <p>🔧 주요부품: <b>${item.부품}</b></p>
-            <p>📊 누적 건수: <b>${item.누적}건</b></p>
-            <p>🔍 주요 키워드: <b>${item.키워드}</b></p>
-            <p>💡 제안: <b>${item.제안}</b></p>
-          `;
-          cardsContainer.appendChild(card);
-        });
+    // 기본 데이터 (fetch 실패 시 표시)
+    const fallbackData = {"predictions": [{"모델": "GAIA-I", "예상불량률": 5.4, "불량유형": "기구", "부품": "SPRINKLER", "누적": 45, "키워드": "부족", "제안": "CLAMP 관련 작업자 교육 강화"}, {"모델": "GAIA-I DUAL", "예상불량률": 2.0, "불량유형": "기구", "부품": "CENTER O-RING", "누적": 30, "키워드": "이탈", "제안": "CLAMP 관련 공정 점검"}], "defect_analysis": [{"category": "기구작업불량", "count": 146, "percentage": 88.0}], "top_keywords": ["체결", "부족", "불량"], "suggestion": "CLAMP 관련 작업자 교육 강화"};
 
-        // 슬라이드 전환
-        let cards = document.querySelectorAll('.card');
-        let index = 0;
-        function showNextCard() {
-          cards.forEach((card, i) => {
-            card.style.display = (i === index) ? 'block' : 'none';
-          });
-          index = (index + 1) % cards.length;
-        }
-        setInterval(showNextCard, 8000);
+    // 데이터 로드 및 렌더링
+    fetch('/data.json')  // Netlify 환경에서 정적 파일 경로
+      .then(response => {
+        if (!response.ok) throw new Error('Failed to load data.json');
+        return response.json();
       })
-      .catch(error => console.error('Error loading data:', error));
+      .then(data => renderCards(data))
+      .catch(error => {
+        console.error('Error loading data:', error);
+        // fetch 실패 시 에러 메시지 표시 및 기본 데이터로 렌더링
+        const cardsContainer = document.getElementById('cards');
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'error';
+        errorDiv.textContent = '데이터를 로드할 수 없습니다. 기본 데이터를 표시합니다.';
+        cardsContainer.appendChild(errorDiv);
+        renderCards(fallbackData);
+      });
+
+    // 카드 렌더링 함수
+    function renderCards(data) {
+      const cardsContainer = document.getElementById('cards');
+      cardsContainer.innerHTML = ''; // 기존 내용 초기화
+      if (!data.predictions || data.predictions.length === 0) {
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'error';
+        errorDiv.textContent = '표시할 데이터가 없습니다.';
+        cardsContainer.appendChild(errorDiv);
+        return;
+      }
+      data.predictions.forEach((item, index) => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.style.display = index === 0 ? 'block' : 'none';
+        card.innerHTML = `
+          <h3>${item.모델} <span style='font-size:14px'>(${item.예상불량률.toFixed(1)}%)</span></h3>
+          <p>🛠 불량유형: <b>${item.불량유형}</b></p>
+          <p>🔧 주요부품: <b>${item.부품}</b></p>
+          <p>📊 누적 건수: <b>${item.누적}건</b></p>
+          <p>🔍 주요 키워드: <b>${item.키워드}</b></p>
+          <p>💡 제안: <b>${item.제안}</b></p>
+        `;
+        cardsContainer.appendChild(card);
+      });
+
+      // 슬라이드 전환
+      let cards = document.querySelectorAll('.card');
+      let index = 0;
+      function showNextCard() {
+        cards.forEach((card, i) => {
+          card.style.display = (i === index) ? 'block' : 'none';
+        });
+        index = (index + 1) % cards.length;
+      }
+      setInterval(showNextCard, 8000);
+    }
   </script>
 </body>
 </html>
