@@ -36,7 +36,7 @@
       background-color: #fff;
       box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
       animation: fadein 0.5s;
-      font-size: 14px;
+      font-size: 12px;
       line-height: 1.5;
       width: 90%; /* 카드뷰 가로 10% 축소 */
       height: 90%; /* 카드뷰 세로 10% 축소 */
@@ -96,7 +96,7 @@
         card.className = 'card';
         card.style.display = index === 0 ? 'block' : 'none';
         card.innerHTML = `
-          <h3>${item.모델} <span style='font-size:14px'>(${item.예상불량률.toFixed(1)}%)</span></h3>
+          <h3>${item.모델} <span style='font-size:12px'>(${item.예상불량률.toFixed(1)}%)</span></h3>
           <p>🛠 불량유형: <b>${item.불량유형}</b></p>
           <p>🔧 주요부품: <b>${item.부품}</b></p>
           <p>📊 누적 건수: <b>${item.누적}건</b></p>
@@ -115,7 +115,7 @@
         });
         index = (index + 1) % cards.length;
       }
-      setInterval(showNextCard, 8000);
+      setInterval(showNextCard, 5000);
     }
   </script>
 </body>
