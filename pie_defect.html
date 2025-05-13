@@ -10,17 +10,23 @@
       margin: 0; padding: 5px;
     }
     .container {
-      width: 350px;  /* 사이즈 조정: 폭 500px → 350px */
-      height: 250px; /* 사이즈 조정: 높이 400px → 250px */
+      width: 350px;
+      height: 250px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
     }
     .cards {
       border: 1px solid #ddd;
       border-radius: 10px;
       padding: 10px;
-      background-color: #f9f9f9;
+      background-color: transparent; /* 백그라운드 색상 제거 */
       width: 100%;
       height: 100%;
       overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
     }
     .card {
       display: none;
@@ -30,8 +36,11 @@
       background-color: #fff;
       box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
       animation: fadein 0.5s;
-      font-size: 14px; /* 폰트 크기 조정: 16px → 14px */
+      font-size: 14px;
       line-height: 1.5;
+      width: 90%; /* 카드뷰 가로 10% 축소 */
+      height: 90%; /* 카드뷰 세로 10% 축소 */
+      box-sizing: border-box;
     }
     @keyframes fadein {
       from { opacity: 0; }
