@@ -10,8 +10,8 @@
       margin: 0; padding: 5px;
     }
     .container {
-      width: 500px;  /* 사이즈 조정: 폭 400px → 500px */
-      height: 400px; /* 사이즈 조정: 높이 300px → 400px */
+      width: 350px;  /* 사이즈 조정: 폭 500px → 350px */
+      height: 250px; /* 사이즈 조정: 높이 400px → 250px */
     }
     .cards {
       border: 1px solid #ddd;
@@ -30,7 +30,7 @@
       background-color: #fff;
       box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
       animation: fadein 0.5s;
-      font-size: 16px; /* 폰트 크기 조정: 14px → 16px */
+      font-size: 14px; /* 폰트 크기 조정: 16px → 14px */
       line-height: 1.5;
     }
     @keyframes fadein {
@@ -39,7 +39,7 @@
     }
     .error {
       color: red;
-      font-size: 16px;
+      font-size: 14px;
       text-align: center;
     }
   </style>
@@ -87,7 +87,7 @@
         card.className = 'card';
         card.style.display = index === 0 ? 'block' : 'none';
         card.innerHTML = `
-          <h3>${item.모델} <span style='font-size:16px'>(${item.예상불량률.toFixed(1)}%)</span></h3>
+          <h3>${item.모델} <span style='font-size:14px'>(${item.예상불량률.toFixed(1)}%)</span></h3>
           <p>🛠 불량유형: <b>${item.불량유형}</b></p>
           <p>🔧 주요부품: <b>${item.부품}</b></p>
           <p>📊 누적 건수: <b>${item.누적}건</b></p>
