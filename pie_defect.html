@@ -59,9 +59,6 @@
   </div>
 
   <script>
-    // 기본 데이터 (fetch 실패 시 표시)
-    const fallbackData = {"predictions": [{"모델": "GAIA-I", "예상불량률": 5.4, "불량유형": "기구", "부품": "SPRINKLER", "누적": 45, "키워드": "부족", "제안": "CLAMP 관련 작업자 교육 강화"}, {"모델": "GAIA-I DUAL", "예상불량률": 2.0, "불량유형": "기구", "부품": "CENTER O-RING", "누적": 30, "키워드": "이탈", "제안": "CLAMP 관련 공정 점검"}], "defect_analysis": [{"category": "기구작업불량", "count": 146, "percentage": 88.0}], "top_keywords": ["체결", "부족", "불량"], "suggestion": "CLAMP 관련 작업자 교육 강화"};
-
     // 데이터 로드 및 렌더링
     fetch('/data.json')  // Netlify 환경에서 정적 파일 경로
       .then(response => {
@@ -71,13 +68,12 @@
       .then(data => renderCards(data))
       .catch(error => {
         console.error('Error loading data:', error);
-        // fetch 실패 시 에러 메시지 표시 및 기본 데이터로 렌더링
+        // fetch 실패 시 에러 메시지 표시
         const cardsContainer = document.getElementById('cards');
         const errorDiv = document.createElement('div');
         errorDiv.className = 'error';
-        errorDiv.textContent = '데이터를 로드할 수 없습니다. 기본 데이터를 표시합니다.';
+        errorDiv.textContent = '데이터를 로드할 수 없습니다.';
         cardsContainer.appendChild(errorDiv);
-        renderCards(fallbackData);
       });
 
     // 카드 렌더링 함수
