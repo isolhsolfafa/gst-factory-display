@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Route, Routes, Link, useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import WeeklyChart from './components/WeeklyChart';
 import MonthlyChart from './components/MonthlyChart';
@@ -7,15 +8,6 @@ import DefectChart from './components/DefectChart';
 import DefectMetrics from './components/DefectMetrics';
 import KpiMetrics from './components/KpiMetrics';
 import './App.css';
-
-// 로깅 유틸리티 함수
-const logInfo = (message, data = '') => {
-  console.log(`[INFO] ${message}`, data);
-};
-
-const logError = (message, error = '') => {
-  console.error(`[ERROR] ${message}`, error);
-};
 
 const formatDateTime = (date) => {
   const year = date.getFullYear();
@@ -54,7 +46,7 @@ const getWeekNumber = (date) => {
 };
 
 // 공장 대시보드 컴포넌트
-const FactoryMonitorDashboard = () => {
+const FactoryDashboard = () => {
   const [dashboardData, setDashboardData] = useState({
     weekly_production: [],
     monthly_production: [],
@@ -66,98 +58,27 @@ const FactoryMonitorDashboard = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-      logInfo('Starting data fetch process');
-      let weeklyData = [];
-      let factoryData = { monthly_production: [], weekly_production_message: '' };
-      let infoData = { summary_table: [] };
-      let errorMessages = [];
-
       try {
         const currentMonth = getCurrentMonth();
-        logInfo('Current month for API query:', currentMonth);
 
-        // Weekly Production
-        try {
-          logInfo('Fetching weekly production data...');
-          const weeklyResponse = await axios.get('https://pda-api-extract.up.railway.app/api/weekly_production');
-          logInfo('Weekly production response:', weeklyResponse.data);
-          weeklyData = weeklyResponse.data || [];
-        } catch (weeklyErr) {
-          logError('Weekly Production Error:', weeklyErr);
-          let errorMessage = '주간 생산 데이터를 불러오는 데 실패했습니다.';
-          if (weeklyErr.response) {
-            errorMessage += ` (상태 코드: ${weeklyErr.response.status}, 엔드포인트: ${weeklyErr.config.url})`;
-          } else if (weeklyErr.request) {
-            errorMessage += ' (서버 응답 없음 - CORS 문제 가능성)';
-          } else {
-            errorMessage += ` (${weeklyErr.message})`;
-          }
-          errorMessages.push(errorMessage);
-        }
+        // 1. 주간 생산 정적 파일
+        const weeklyResponse = await axios.get('/weekly_production.json');
+        // 2. 월간 생산(및 기타) API
+        const response = await axios.get(`https://pda-api-extract.up.railway.app/api/factory`);
+        const infoResponse = await axios.get(`https://pda-api-extract.up.railway.app/api/info?mode=monthly&month=${currentMonth}`);
 
-        // Factory
-        try {
-          logInfo('Fetching factory data...');
-          const factoryResponse = await axios.get('https://pda-api-extract.up.railway.app/api/factory');
-          logInfo('Factory response:', factoryResponse.data);
-          factoryData = factoryResponse.data || { monthly_production: [], weekly_production_message: '' };
-        } catch (factoryErr) {
-          logError('Factory Error:', factoryErr);
-          let errorMessage = '공장 데이터를 불러오는 데 실패했습니다.';
-          if (factoryErr.response) {
-            errorMessage += ` (상태 코드: ${factoryErr.response.status}, 엔드포인트: ${factoryErr.config.url})`;
-          } else if (factoryErr.request) {
-            errorMessage += ' (서버 응답 없음 - CORS 문제 가능성)';
-          } else {
-            errorMessage += ` (${factoryErr.message})`;
-          }
-          errorMessages.push(errorMessage);
-        }
-
-        // Info
-        try {
-          logInfo('Fetching info data...');
-          const infoResponse = await axios.get(`https://pda-api-extract.up.railway.app/api/info?mode=monthly&month=${currentMonth}`);
-          logInfo('Info response:', infoResponse.data);
-          infoData = infoResponse.data || { summary_table: [] };
-        } catch (infoErr) {
-          logError('Info Error:', infoErr);
-          let errorMessage = '정보 데이터를 불러오는 데 실패했습니다.';
-          if (infoErr.response) {
-            errorMessage += ` (상태 코드: ${infoErr.response.status}, 엔드포인트: ${infoErr.config.url})`;
-          } else if (infoErr.request) {
-            errorMessage += ' (서버 응답 없음 - CORS 문제 가능성)';
-          } else {
-            errorMessage += ` (${infoErr.message})`;
-          }
-          errorMessages.push(errorMessage);
-        }
-
-        const newData = {
-          weekly_production: weeklyData,
-          monthly_production: factoryData.monthly_production || [],
-          summary_table: infoData.summary_table || [],
-          weekly_production_message: factoryData.weekly_production_message || ''
-        };
-        setDashboardData(newData);
-        logInfo('Dashboard data updated:', newData);
-
-        if (errorMessages.length > 0) {
-          setError(errorMessages.join('\n'));
-          logError('Combined error messages:', errorMessages.join('\n'));
-        }
-
+        setDashboardData({
+          weekly_production: weeklyResponse.data || [],
+          monthly_production: response.data.monthly_production || [],
+          summary_table: infoResponse.data.summary_table || [],
+          weekly_production_message: response.data.weekly_production_message || ''
+        });
         setLoading(false);
-        logInfo('Loading state set to false');
       } catch (err) {
-        logError('Unexpected Error:', err);
-        setError('알 수 없는 오류가 발생했습니다.');
+        setError('데이터를 불러오는 데 실패했습니다.');
         setLoading(false);
-        logInfo('Loading state set to false after unexpected error');
       }
     };
-
-    logInfo('Fetching data on component mount');
     fetchData();
   }, []);
 
@@ -229,9 +150,46 @@ const FactoryMonitorDashboard = () => {
   );
 };
 
-const App = () => {
+// 협력사 대시보드 컴포넌트 (iframe으로 partner.html 연동)
+const PartnerDashboard = () => (
+  <iframe
+    src="/partner.html"
+    title="Partner Dashboard"
+    style={{ width: '100%', height: '95vh', border: 'none' }}
+  />
+);
+
+// 내부 대시보드 컴포넌트 (비밀번호 보호 포함, iframe으로 internal.html 연동)
+const InternalDashboard = () => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const navigate = useNavigate();
+
   useEffect(() => {
-    logInfo('Adding Google Analytics script');
+    const password = prompt("🔐 내부 대시보드 접근을 위한 비밀번호를 입력하세요:");
+    if (password === "0979") {
+      setIsAuthenticated(true);
+    } else {
+      alert("❌ 비밀번호가 틀렸습니다. 접근이 제한됩니다.");
+      navigate('/');
+    }
+  }, [navigate]);
+
+  if (!isAuthenticated) return null;
+
+  return (
+    <iframe
+      src="/internal.html"
+      title="Internal Dashboard"
+      style={{ width: '100%', height: '95vh', border: 'none' }}
+    />
+  );
+};
+
+// 메뉴탭과 라우팅을 포함한 메인 App 컴포넌트
+const App = () => {
+  const location = useLocation();
+
+  useEffect(() => {
     const script1 = document.createElement('script');
     script1.async = true;
     script1.src = 'https://www.googletagmanager.com/gtag/js?id=G-F7HTZVLPLF';
@@ -247,8 +205,45 @@ const App = () => {
     document.head.appendChild(script2);
   }, []);
 
-  logInfo('Rendering App component');
-  return <FactoryMonitorDashboard />;
+  const getButtonStyle = (path) => ({
+    width: '100%',
+    padding: '14px 16px',
+    background: location.pathname === path ? '#007acc' : '#1a1a1a',
+    border: 'none',
+    color: 'white',
+    fontSize: '16px',
+    cursor: 'pointer'
+  });
+
+  return (
+    <div>
+      <div className="tab" style={{ display: 'flex', background: '#1a1a1a', color: 'white' }}>
+        <Link to="/" style={{ textDecoration: 'none', flex: 1 }}>
+          <button style={getButtonStyle('/')}>🏭 공장 대시보드</button>
+        </Link>
+        <Link to="/partner" style={{ textDecoration: 'none', flex: 1 }}>
+          <button style={getButtonStyle('/partner')}>🤝 협력사 대시보드</button>
+        </Link>
+        <Link to="/internal" style={{ textDecoration: 'none', flex: 1 }}>
+          <button style={getButtonStyle('/internal')}>🔒 내부 대시보드</button>
+        </Link>
+      </div>
+      <div style={{ padding: '20px' }}>
+        <Routes>
+          <Route path="/" element={<FactoryDashboard />} />
+          <Route path="/partner" element={<PartnerDashboard />} />
+          <Route path="/internal" element={<InternalDashboard />} />
+        </Routes>
+      </div>
+    </div>
+  );
 };
 
-export default App;
+// App must be wrapped in Router for useLocation to work, so we export a wrapper
+const AppWithRouter = () => (
+  <Router>
+    <App />
+  </Router>
+);
+
+export default AppWithRouter;
