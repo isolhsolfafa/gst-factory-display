@@ -102,7 +102,6 @@ const FactoryDashboard = () => {
   return (
     <div>
       <div className="header">
-        <img src="https://rainbow-haupia-cd8290.netlify.app/GST_banner.jpg" alt="Build up GST Banner" />
         <h1 ref={headerRef}>제조기술1팀 공장 대시보드 - {getCurrentWeek()}</h1>
         {/* 스크롤 고정위치용 ref 추가 */}
         <p>실행 시간: {currentTime}</p>
