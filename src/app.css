@@ -1,0 +1,20 @@
+body {
+  margin: 0;
+  padding: 0;
+  background: #1a1a1a;
+  color: white;
+  font-family: Arial, sans-serif;
+}
+h1, h2 {
+  text-align: center;
+}
+.top-grid, .bottom-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+@media (min-width: 1920px) {
+  body { font-size: 32px; }
+  h1 { font-size: 64px; }
+  h2 { font-size: 48px; }
+}
