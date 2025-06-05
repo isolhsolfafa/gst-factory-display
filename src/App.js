@@ -161,6 +161,7 @@ const FactoryMonitorDashboard = () => {
     fetchData();
   }, []);
 
+  // 30분 새로고침 및 위치 고정 추가
   useEffect(() => {
     logInfo('Setting up auto-refresh and scroll position handling');
 
