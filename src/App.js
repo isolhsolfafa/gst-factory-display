@@ -209,7 +209,7 @@ const FactoryMonitorDashboard = () => {
         <h2 style={{ fontSize: '36px' }}>요약 테이블</h2>
         <SummaryTable data={dashboardData} />
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginTop: '20px' }}>
+      <div className="bottom-grid">
         <div>
           <h2 style={{ fontSize: '36px' }}>불량 지표</h2>
           <DefectMetrics />
