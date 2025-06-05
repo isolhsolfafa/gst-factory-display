@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Route, Routes, Link, useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import WeeklyChart from './components/WeeklyChart';
 import MonthlyChart from './components/MonthlyChart';
@@ -8,16 +9,44 @@ import DefectMetrics from './components/DefectMetrics';
 import KpiMetrics from './components/KpiMetrics';
 import './App.css';
 
-// 로깅 유틸리티 함수
-const logInfo = (message, data = '') => {
-  console.log(`[INFO] ${message}`, data);
+const formatDateTime = (date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const seconds = String(date.getSeconds()).padStart(2, '0');
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds} (KST)`;
 };
 
-const logError = (message, error = '') => {
-  console.error(`[ERROR] ${message}`, error);
+const getCurrentMonth = () => {
+  const date = new Date();
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  return `${year}-${month}`;
 };
 
-const FactoryMonitorDashboard = () => {
+const getCurrentWeek = () => {
+  const now = new Date();
+  const [year, week] = [now.getFullYear(), getWeekNumber(now)];
+  return `${year}년 ${week}주차`;
+};
+
+const getWeekNumber = (date) => {
+  const target = new Date(date.valueOf());
+  const dayNr = (date.getDay() + 6) % 7;
+  target.setDate(target.getDate() - dayNr + 3);
+  const firstThursday = target.valueOf();
+  target.setMonth(0, 1);
+  if (target.getDay() !== 4) {
+    target.setMonth(0, 1 + ((4 - target.getDay()) + 7) % 7);
+  }
+  const weekNumber = 1 + Math.ceil((firstThursday - target) / 604800000);
+  return weekNumber;
+};
+
+// 공장 대시보드 컴포넌트
+const FactoryDashboard = () => {
   const [dashboardData, setDashboardData] = useState({
     weekly_production: [],
     monthly_production: [],
@@ -29,203 +58,157 @@ const FactoryMonitorDashboard = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-      logInfo('Starting data fetch process');
-      let weeklyData = [];
-      let factoryData = { monthly_production: [], weekly_production_message: '' };
-      let infoData = { summary_table: [] };
-      let errorMessages = [];
-
       try {
-        const currentMonth = new Date().toISOString().slice(0, 7);
-        logInfo('Current month for API query:', currentMonth);
+        const currentMonth = getCurrentMonth();
 
-        // Weekly Production
-        try {
-          logInfo('Fetching weekly production data...');
-          const weeklyResponse = await axios.get('https://pda-api-extract.up.railway.app/api/weekly_production');
-          logInfo('Weekly production response:', weeklyResponse.data);
-          weeklyData = weeklyResponse.data || [];
-        } catch (weeklyErr) {
-          logError('Weekly Production Error:', weeklyErr);
-          let errorMessage = '주간 생산 데이터를 불러오는 데 실패했습니다.';
-          if (weeklyErr.response) {
-            errorMessage += ` (상태 코드: ${weeklyErr.response.status}, 엔드포인트: ${weeklyErr.config.url})`;
-          } else if (weeklyErr.request) {
-            errorMessage += ' (서버 응답 없음 - CORS 문제 가능성)';
-          } else {
-            errorMessage += ` (${weeklyErr.message})`;
-          }
-          errorMessages.push(errorMessage);
-        }
+        // 1. 주간 생산 정적 파일
+        const weeklyResponse = await axios.get('/weekly_production.json');
+        // 2. 월간 생산(및 기타) API
+        const response = await axios.get(`https://pda-api-extract.up.railway.app/api/factory`);
+        const infoResponse = await axios.get(`https://pda-api-extract.up.railway.app/api/info?mode=monthly&month=${currentMonth}`);
 
-        // Factory
-        try {
-          logInfo('Fetching factory data...');
-          const factoryResponse = await axios.get('https://pda-api-extract.up.railway.app/api/factory');
-          logInfo('Factory response:', factoryResponse.data);
-          factoryData = factoryResponse.data || { monthly_production: [], weekly_production_message: '' };
-        } catch (factoryErr) {
-          logError('Factory Error:', factoryErr);
-          let errorMessage = '공장 데이터를 불러오는 데 실패했습니다.';
-          if (factoryErr.response) {
-            errorMessage += ` (상태 코드: ${factoryErr.response.status}, 엔드포인트: ${factoryErr.config.url})`;
-          } else if (factoryErr.request) {
-            errorMessage += ' (서버 응답 없음 - CORS 문제 가능성)';
-          } else {
-            errorMessage += ` (${factoryErr.message})`;
-          }
-          errorMessages.push(errorMessage);
-        }
-
-        // Info
-        try {
-          logInfo('Fetching info data...');
-          const infoResponse = await axios.get(`https://pda-api-extract.up.railway.app/api/info?mode=monthly&month=${currentMonth}`);
-          logInfo('Info response:', infoResponse.data);
-          infoData = infoResponse.data || { summary_table: [] };
-        } catch (infoErr) {
-          logError('Info Error:', infoErr);
-          let errorMessage = '정보 데이터를 불러오는 데 실패했습니다.';
-          if (infoErr.response) {
-            errorMessage += ` (상태 코드: ${infoErr.response.status}, 엔드포인트: ${infoErr.config.url})`;
-          } else if (infoErr.request) {
-            errorMessage += ' (서버 응답 없음 - CORS 문제 가능성)';
-          } else {
-            errorMessage += ` (${infoErr.message})`;
-          }
-          errorMessages.push(errorMessage);
-        }
-
-        const newData = {
-          weekly_production: weeklyData,
-          monthly_production: factoryData.monthly_production || [],
-          summary_table: infoData.summary_table || [],
-          weekly_production_message: factoryData.weekly_production_message || ''
-        };
-        setDashboardData(newData);
-        logInfo('Dashboard data updated:', newData);
-
-        if (errorMessages.length > 0) {
-          setError(errorMessages.join('\n'));
-          logError('Combined error messages:', errorMessages.join('\n'));
-        }
-
+        setDashboardData({
+          weekly_production: weeklyResponse.data || [],
+          monthly_production: response.data.monthly_production || [],
+          summary_table: infoResponse.data.summary_table || [],
+          weekly_production_message: response.data.weekly_production_message || ''
+        });
         setLoading(false);
-        logInfo('Loading state set to false');
       } catch (err) {
-        logError('Unexpected Error:', err);
-        setError('알 수 없는 오류가 발생했습니다.');
+        setError('데이터를 불러오는 데 실패했습니다.');
         setLoading(false);
-        logInfo('Loading state set to false after unexpected error');
       }
     };
-
-    logInfo('Fetching data on component mount');
     fetchData();
   }, []);
 
+  const currentTime = formatDateTime(new Date());
+
+  return (
+    <div>
+      <div className="header">
+        <img src="https://rainbow-haupia-cd8290.netlify.app/GST_banner.jpg" alt="Build up GST Banner" />
+        <h1>제조기술1팀 공장 대시보드 - {getCurrentWeek()}</h1>
+        <p>실행 시간: {currentTime}</p>
+      </div>
+      {loading ? (
+        <div>로딩 중...</div>
+      ) : error ? (
+        <div>{error}</div>
+      ) : (
+        <>
+          <div className="top-grid">
+            <WeeklyChart data={dashboardData.weekly_production} />
+            <MonthlyChart data={dashboardData.monthly_production} />
+            <DefectChart />
+          </div>
+          <div className="chart-section summary-section">
+            <SummaryTable data={dashboardData} />
+          </div>
+          <div className="bottom-grid">
+            <DefectMetrics />
+            <KpiMetrics />
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
+// 협력사 대시보드 컴포넌트 (iframe으로 partner.html 연동)
+const PartnerDashboard = () => (
+  <iframe
+    src="/partner.html"
+    title="Partner Dashboard"
+    style={{ width: '100%', height: '95vh', border: 'none' }}
+  />
+);
+
+// 내부 대시보드 컴포넌트 (비밀번호 보호 포함, iframe으로 internal.html 연동)
+const InternalDashboard = () => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const navigate = useNavigate();
+
   useEffect(() => {
-    logInfo('Setting up auto-refresh and scroll position handling');
-
-    // 1시간(3600초)마다 새로고침
-    const intervalId = setInterval(() => {
-      logInfo('Auto-refresh triggered');
-      window.location.reload();
-    }, 3600000);
-
-    // 스크롤 위치 저장
-    const handleScroll = () => {
-      const position = window.scrollY;
-      localStorage.setItem('scrollPosition', position);
-      logInfo('Scroll position saved:', position);
-    };
-    window.addEventListener('scroll', handleScroll);
-    logInfo('Scroll event listener added');
-
-    // 새로고침 후 스크롤 위치 복원
-    const savedPosition = localStorage.getItem('scrollPosition');
-    if (savedPosition) {
-      logInfo('Restoring scroll position:', savedPosition);
-      window.scrollTo(0, parseInt(savedPosition));
+    const password = prompt("🔐 내부 대시보드 접근을 위한 비밀번호를 입력하세요:");
+    if (password === "0979") {
+      setIsAuthenticated(true);
     } else {
-      logInfo('No saved scroll position found');
+      alert("❌ 비밀번호가 틀렸습니다. 접근이 제한됩니다.");
+      navigate('/');
     }
+  }, [navigate]);
 
-    return () => {
-      logInfo('Cleaning up auto-refresh and scroll listener');
-      clearInterval(intervalId);
-      window.removeEventListener('scroll', handleScroll);
-    };
+  if (!isAuthenticated) return null;
+
+  return (
+    <iframe
+      src="/internal.html"
+      title="Internal Dashboard"
+      style={{ width: '100%', height: '95vh', border: 'none' }}
+    />
+  );
+};
+
+// 메뉴탭과 라우팅을 포함한 메인 App 컴포넌트
+const App = () => {
+  const location = useLocation();
+
+  useEffect(() => {
+    const script1 = document.createElement('script');
+    script1.async = true;
+    script1.src = 'https://www.googletagmanager.com/gtag/js?id=G-F7HTZVLPLF';
+    document.head.appendChild(script1);
+
+    const script2 = document.createElement('script');
+    script2.innerHTML = `
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-F7HTZVLPLF');
+    `;
+    document.head.appendChild(script2);
   }, []);
 
-  const toggleFullscreen = () => {
-    logInfo('Toggling fullscreen mode');
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen();
-      logInfo('Entered fullscreen mode');
-    } else {
-      document.exitFullscreen();
-      logInfo('Exited fullscreen mode');
-    }
-  };
+  const getButtonStyle = (path) => ({
+    width: '100%',
+    padding: '14px 16px',
+    background: location.pathname === path ? '#007acc' : '#1a1a1a',
+    border: 'none',
+    color: 'white',
+    fontSize: '16px',
+    cursor: 'pointer'
+  });
 
-  if (loading) {
-    logInfo('Rendering loading state');
-    return <div style={{ fontSize: '48px', color: 'black', background: '#ffffff' }}>로딩 중...</div>;
-  }
-  if (error) {
-    logInfo('Rendering error state:', error);
-    return <div style={{ fontSize: '48px', color: 'red', background: '#ffffff' }}>{error}</div>;
-  }
-
-  logInfo('Rendering dashboard with data:', dashboardData);
   return (
-    <div style={{ background: '#ffffff', color: 'black', padding: '20px', fontSize: '24px', minHeight: '100vh' }}>
-      <button
-        onClick={toggleFullscreen}
-        style={{ fontSize: '24px', padding: '10px 20px', background: '#007acc', color: 'white', border: 'none', cursor: 'pointer' }}
-      >
-        전체화면
-      </button>
-      <h1 style={{ fontSize: '48px', textAlign: 'center' }}>제조기술1팀 공장 대시보드</h1>
-      <p style={{ fontSize: '32px', textAlign: 'center' }}>
-        업데이트: {new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })}
-      </p>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginTop: '20px' }}>
-        <div>
-          <h2 style={{ fontSize: '36px' }}>주간 생산</h2>
-          <WeeklyChart data={dashboardData.weekly_production} />
-        </div>
-        <div>
-          <h2 style={{ fontSize: '36px' }}>월간 생산</h2>
-          <MonthlyChart data={dashboardData.monthly_production} />
-        </div>
+    <div>
+      <div className="tab" style={{ display: 'flex', background: '#1a1a1a', color: 'white' }}>
+        <Link to="/" style={{ textDecoration: 'none', flex: 1 }}>
+          <button style={getButtonStyle('/')}>🏭 공장 대시보드</button>
+        </Link>
+        <Link to="/partner" style={{ textDecoration: 'none', flex: 1 }}>
+          <button style={getButtonStyle('/partner')}>🤝 협력사 대시보드</button>
+        </Link>
+        <Link to="/internal" style={{ textDecoration: 'none', flex: 1 }}>
+          <button style={getButtonStyle('/internal')}>🔒 내부 대시보드</button>
+        </Link>
       </div>
-      <div style={{ marginTop: '20px' }}>
-        <h2 style={{ fontSize: '36px' }}>불량 차트</h2>
-        <DefectChart />
-      </div>
-      <div style={{ marginTop: '20px' }}>
-        <h2 style={{ fontSize: '36px' }}>요약 테이블</h2>
-        <SummaryTable data={dashboardData} />
-      </div>
-      <div className="bottom-grid">
-        <div>
-          <h2 style={{ fontSize: '36px' }}>불량 지표</h2>
-          <DefectMetrics />
-        </div>
-        <div>
-          <h2 style={{ fontSize: '36px' }}>KPI 지표</h2>
-          <KpiMetrics />
-        </div>
+      <div style={{ padding: '20px' }}>
+        <Routes>
+          <Route path="/" element={<FactoryDashboard />} />
+          <Route path="/partner" element={<PartnerDashboard />} />
+          <Route path="/internal" element={<InternalDashboard />} />
+        </Routes>
       </div>
     </div>
   );
 };
 
-const App = () => {
-  logInfo('Rendering App component');
-  return <FactoryMonitorDashboard />;
-};
+// App must be wrapped in Router for useLocation to work, so we export a wrapper
+const AppWithRouter = () => (
+  <Router>
+    <App />
+  </Router>
+);
 
-export default App;
+export default AppWithRouter;
