@@ -28,68 +28,95 @@ const FactoryMonitorDashboard = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-  const fetchData = async () => {
-    logInfo('Starting data fetch process');
-    let weeklyData = [];
-    let factoryData = { monthly_production: [], weekly_production_message: '' };
-    let infoData = { summary_table: [] };
+    const fetchData = async () => {
+      logInfo('Starting data fetch process');
+      let weeklyData = [];
+      let factoryData = { monthly_production: [], weekly_production_message: '' };
+      let infoData = { summary_table: [] };
 
-    try {
-      const currentMonth = new Date().toISOString().slice(0, 7);
-      logInfo('Current month for API query:', currentMonth);
-
-      // Weekly Production
       try {
-        logInfo('Fetching weekly production data...');
-        const weeklyResponse = await axios.get('https://pda-api-extract.up.railway.app/api/weekly_production');
-        logInfo('Weekly production response:', weeklyResponse.data);
-        weeklyData = weeklyResponse.data || [];
-      } catch (weeklyErr) {
-        logError('Weekly Production Error:', weeklyErr);
+        const currentMonth = new Date().toISOString().slice(0, 7);
+        logInfo('Current month for API query:', currentMonth);
+
+        // Weekly Production
+        try {
+          logInfo('Fetching weekly production data...');
+          const weeklyResponse = await axios.get('https://pda-api-extract.up.railway.app/api/weekly_production');
+          logInfo('Weekly production response:', weeklyResponse.data);
+          weeklyData = weeklyResponse.data || [];
+        } catch (weeklyErr) {
+          logError('Weekly Production Error:', weeklyErr);
+          let errorMessage = '주간 생산 데이터를 불러오는 데 실패했습니다.';
+          if (weeklyErr.response) {
+            errorMessage += ` (상태 코드: ${weeklyErr.response.status}, 엔드포인트: ${weeklyErr.config.url})`;
+          } else if (weeklyErr.request) {
+            errorMessage += ' (서버 응답 없음 - CORS 문제 가능성)';
+          } else {
+            errorMessage += ` (${weeklyErr.message})`;
+          }
+          setError(prevError => prevError ? `${prevError}\n${errorMessage}` : errorMessage);
+        }
+
+        // Factory
+        try {
+          logInfo('Fetching factory data...');
+          const factoryResponse = await axios.get('https://pda-api-extract.up.railway.app/api/factory');
+          logInfo('Factory response:', factoryResponse.data);
+          factoryData = factoryResponse.data || { monthly_production: [], weekly_production_message: '' };
+        } catch (factoryErr) {
+          logError('Factory Error:', factoryErr);
+          let errorMessage = '공장 데이터를 불러오는 데 실패했습니다.';
+          if (factoryErr.response) {
+            errorMessage += ` (상태 코드: ${factoryErr.response.status}, 엔드포인트: ${factoryErr.config.url})`;
+          } else if (factoryErr.request) {
+            errorMessage += ' (서버 응답 없음 - CORS 문제 가능성)';
+          } else {
+            errorMessage += ` (${factoryErr.message})`;
+          }
+          setError(prevError => prevError ? `${prevError}\n${errorMessage}` : errorMessage);
+        }
+
+        // Info
+        try {
+          logInfo('Fetching info data...');
+          const infoResponse = await axios.get(`https://pda-api-extract.up.railway.app/api/info?mode=monthly&month=${currentMonth}`);
+          logInfo('Info response:', infoResponse.data);
+          infoData = infoResponse.data || { summary_table: [] };
+        } catch (infoErr) {
+          logError('Info Error:', infoErr);
+          let errorMessage = '정보 데이터를 불러오는 데 실패했습니다.';
+          if (infoErr.response) {
+            errorMessage += ` (상태 코드: ${infoErr.response.status}, 엔드포인트: ${infoErr.config.url})`;
+          } else if (infoErr.request) {
+            errorMessage += ' (서버 응답 없음 - CORS 문제 가능성)';
+          } else {
+            errorMessage += ` (${infoErr.message})`;
+          }
+          setError(prevError => prevError ? `${prevError}\n${errorMessage}` : errorMessage);
+        }
+
+        const newData = {
+          weekly_production: weeklyData,
+          monthly_production: factoryData.monthly_production || [],
+          summary_table: infoData.summary_table || [],
+          weekly_production_message: factoryData.weekly_production_message || ''
+        };
+        setDashboardData(newData);
+        logInfo('Dashboard data updated:', newData);
+
+        setLoading(false);
+        logInfo('Loading state set to false');
+      } catch (err) {
+        logError('Unexpected Error:', err);
+        setError('알 수 없는 오류가 발생했습니다.');
+        setLoading(false);
+        logInfo('Loading state set to false after unexpected error');
       }
+    };
 
-      // Factory
-      try {
-        logInfo('Fetching factory data...');
-        const factoryResponse = await axios.get('https://pda-api-extract.up.railway.app/api/factory');
-        logInfo('Factory response:', factoryResponse.data);
-        factoryData = factoryResponse.data || { monthly_production: [], weekly_production_message: '' };
-      } catch (factoryErr) {
-        logError('Factory Error:', factoryErr);
-      }
-
-      // Info
-      try {
-        logInfo('Fetching info data...');
-        const infoResponse = await axios.get(`https://pda-api-extract.up.railway.app/api/info?mode=monthly&month=${currentMonth}`);
-        logInfo('Info response:', infoResponse.data);
-        infoData = infoResponse.data || { summary_table: [] };
-      } catch (infoErr) {
-        logError('Info Error:', infoErr);
-      }
-
-      const newData = {
-        weekly_production: weeklyData,
-        monthly_production: factoryData.monthly_production || [],
-        summary_table: infoData.summary_table || [],
-        weekly_production_message: factoryData.weekly_production_message || ''
-      };
-      setDashboardData(newData);
-      logInfo('Dashboard data updated:', newData);
-
-      setLoading(false);
-      logInfo('Loading state set to false');
-    } catch (err) {
-      logError('Unexpected Error:', err);
-      setError('알 수 없는 오류가 발생했습니다.');
-      setLoading(false);
-      logInfo('Loading state set to false after unexpected error');
-    }
-  };
-
-  logInfo('Fetching data on component mount');
-  fetchData();
-}, []);
+    logInfo('Fetching data on component mount');
+    fetchData();
+  }, []);
 
   useEffect(() => {
     logInfo('Setting up auto-refresh and scroll position handling');
