@@ -62,7 +62,7 @@ const FactoryDashboard = () => {
     // 새로고침 타이머
     const timer = setInterval(() => {
       window.location.reload();
-    }, 1800000); // 30분(1800초)
+    }, 60000); // 30분(1800초)
 
     // 새로고침 후 스크롤 이동
     setTimeout(() => {
