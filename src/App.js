@@ -82,40 +82,6 @@ const FactoryDashboard = () => {
     fetchData();
   }, []);
 
-  // 30분 새로고침 및 위치 고정 추가
-  useEffect(() => {
-    logInfo('Setting up auto-refresh and scroll position handling');
-
-    // 30분(1800초)마다 새로고침
-    const intervalId = setInterval(() => {
-      logInfo('Auto-refresh triggered');
-      window.location.reload();
-    }, 1800000);
-
-    // 스크롤 위치 저장
-    const handleScroll = () => {
-      const position = window.scrollY;
-      localStorage.setItem('scrollPosition', position);
-      logInfo('Scroll position saved:', position);
-    };
-    window.addEventListener('scroll', handleScroll);
-    logInfo('Scroll event listener added');
-
-    // 새로고침 후 스크롤 위치 복원
-    const savedPosition = localStorage.getItem('scrollPosition');
-    if (savedPosition) {
-      logInfo('Restoring scroll position:', savedPosition);
-      window.scrollTo(0, parseInt(savedPosition));
-    } else {
-      logInfo('No saved scroll position found');
-    }
-
-    return () => {
-      logInfo('Cleaning up auto-refresh and scroll listener');
-      clearInterval(intervalId);
-      window.removeEventListener('scroll', handleScroll);
-    };
-  }, []);
 
   const currentTime = formatDateTime(new Date());
 
