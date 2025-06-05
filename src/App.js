@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { BrowserRouter as Router, Route, Routes, Link, useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import WeeklyChart from './components/WeeklyChart';
@@ -55,15 +55,30 @@ const FactoryDashboard = () => {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const headerRef = useRef(null);
+
+  // 30분마다 새로고침 & 스크롤 고정
+  useEffect(() => {
+    // 새로고침 타이머
+    const timer = setInterval(() => {
+      window.location.reload();
+    }, 1800000); // 30분(1800초)
+
+    // 새로고침 후 스크롤 이동
+    setTimeout(() => {
+      if (headerRef.current) {
+        headerRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 100); // DOM 렌더 완료 후 스크롤
+
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         const currentMonth = getCurrentMonth();
-
-        // 1. 주간 생산 정적 파일
         const weeklyResponse = await axios.get('/weekly_production.json');
-        // 2. 월간 생산(및 기타) API
         const response = await axios.get(`https://pda-api-extract.up.railway.app/api/factory`);
         const infoResponse = await axios.get(`https://pda-api-extract.up.railway.app/api/info?mode=monthly&month=${currentMonth}`);
 
@@ -82,14 +97,14 @@ const FactoryDashboard = () => {
     fetchData();
   }, []);
 
-
   const currentTime = formatDateTime(new Date());
 
   return (
     <div>
       <div className="header">
         <img src="https://rainbow-haupia-cd8290.netlify.app/GST_banner.jpg" alt="Build up GST Banner" />
-        <h1>제조기술1팀 공장 대시보드 - {getCurrentWeek()}</h1>
+        {/* 스크롤 고정위치용 ref 추가 */}
+        <h1 ref={headerRef}>제조기술1팀 공장 대시보드 - {getCurrentWeek()}</h1>
         <p>실행 시간: {currentTime}</p>
       </div>
       {loading ? (
