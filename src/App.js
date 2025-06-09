@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { Auth0Provider, useAuth0 } from "@auth0/auth0-react";
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Route, Routes, Link, useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import WeeklyChart from './components/WeeklyChart';
@@ -55,32 +56,35 @@ const FactoryDashboard = () => {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const headerRef = useRef(null);
 
-  // 30분마다 새로고침 & 스크롤 고정
-  useEffect(() => {
-    // 새로고침 타이머
-    const timer = setInterval(() => {
-      window.location.reload();
-    }, 600000); // 30분(1800초)
-
-    // 새로고침 후 스크롤 이동
-    setTimeout(() => {
-      if (headerRef.current) {
-        headerRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    }, 100); // DOM 렌더 완료 후 스크롤
-
-    return () => clearInterval(timer);
-  }, []);
+  const { getAccessTokenSilently, isAuthenticated, isLoading, loginWithRedirect } = useAuth0();
 
   useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      loginWithRedirect();  // Automatically redirect to login
+    }
+  }, [isLoading, isAuthenticated]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;  // If not authenticated, stop the function
+
     const fetchData = async () => {
       try {
         const currentMonth = getCurrentMonth();
+
+        // 1. Fetch weekly production data
         const weeklyResponse = await axios.get('/weekly_production.json');
-        const response = await axios.get(`https://pda-api-extract.up.railway.app/api/factory`);
-        const infoResponse = await axios.get(`https://pda-api-extract.up.railway.app/api/info?mode=monthly&month=${currentMonth}`);
+        
+        // 2. Fetch monthly production data and other info
+        const token = await getAccessTokenSilently();
+        const headers = { Authorization: `Bearer ${token}` };
+
+        // 여기에 추가!
+        console.log("토큰 값:", token);
+        console.log("보낼 헤더:", headers);
+        
+        const response = await axios.get(`https://pda-api-extract.up.railway.app/api/factory`, { headers });
+        const infoResponse = await axios.get(`https://pda-api-extract.up.railway.app/api/info?mode=monthly&month=${currentMonth}`, { headers });
 
         setDashboardData({
           weekly_production: weeklyResponse.data || [],
@@ -94,16 +98,18 @@ const FactoryDashboard = () => {
         setLoading(false);
       }
     };
+
+    
     fetchData();
-  }, []);
+  }, [isAuthenticated]);
 
   const currentTime = formatDateTime(new Date());
 
   return (
     <div>
       <div className="header">
-        <h1 ref={headerRef}>제조기술1팀 공장 대시보드 - {getCurrentWeek()}</h1>
-        {/* 스크롤 고정위치용 ref 추가 */}
+        <img src="https://rainbow-haupia-cd8290.netlify.app/GST_banner.jpg" alt="Build up GST Banner" />
+        <h1>제조기술1팀 공장 대시보드 - {getCurrentWeek()}</h1>
         <p>실행 시간: {currentTime}</p>
       </div>
       {loading ? (
@@ -165,6 +171,27 @@ const InternalDashboard = () => {
   );
 };
 
+const AuthButtons = () => {
+  const { loginWithRedirect, logout, isAuthenticated, user } = useAuth0();
+
+  if (isAuthenticated) {
+    return (
+      <div style={{ textAlign: 'right', padding: '10px' }}>
+        👤 {user.name} &nbsp;
+        <button onClick={() => logout({ logoutParams: { returnTo: window.location.origin } })}>
+          로그아웃
+        </button>
+      </div>
+    );
+  } else {
+    return (
+      <div style={{ textAlign: 'right', padding: '10px' }}>
+        <button onClick={() => loginWithRedirect()}>🔑 로그인</button>
+      </div>
+    );
+  }
+};
+
 // 메뉴탭과 라우팅을 포함한 메인 App 컴포넌트
 const App = () => {
   const location = useLocation();
@@ -197,6 +224,7 @@ const App = () => {
 
   return (
     <div>
+      <AuthButtons />
       <div className="tab" style={{ display: 'flex', background: '#1a1a1a', color: 'white' }}>
         <Link to="/" style={{ textDecoration: 'none', flex: 1 }}>
           <button style={getButtonStyle('/')}>🏭 공장 대시보드</button>
@@ -226,4 +254,17 @@ const AppWithRouter = () => (
   </Router>
 );
 
-export default AppWithRouter;
+const AuthWrapper = () => (
+  <Auth0Provider
+    domain={process.env.REACT_APP_AUTH0_DOMAIN}
+    clientId={process.env.REACT_APP_AUTH0_CLIENT_ID}
+    authorizationParams={{
+      redirect_uri: window.location.origin,
+      audience: process.env.REACT_APP_AUTH0_AUDIENCE
+    }}
+  >
+    <AppWithRouter />
+  </Auth0Provider>
+);
+
+export default AuthWrapper;
