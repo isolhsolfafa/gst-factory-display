@@ -102,7 +102,7 @@ const FactoryDashboard = () => {
   useEffect(() => {
     const interval = setInterval(() => {
       window.location.reload();
-    }, 60000); // 600,000ms = 10분
+    }, 600000); // 600,000ms = 10분
 
     return () => clearInterval(interval);
   }, []);
