@@ -79,10 +79,6 @@ const FactoryDashboard = () => {
         const token = await getAccessTokenSilently();
         const headers = { Authorization: `Bearer ${token}` };
 
-        // 여기에 추가!
-        console.log("토큰 값:", token);
-        console.log("보낼 헤더:", headers);
-        
         const response = await axios.get(`https://pda-api-extract.up.railway.app/api/factory`, { headers });
         const infoResponse = await axios.get(`https://pda-api-extract.up.railway.app/api/info?mode=monthly&month=${currentMonth}`, { headers });
 
@@ -99,15 +95,24 @@ const FactoryDashboard = () => {
       }
     };
 
-    
     fetchData();
   }, [isAuthenticated]);
+
+  // 10분마다 새로고침
+  useEffect(() => {
+    const interval = setInterval(() => {
+      window.location.reload();
+    }, 60000); // 600,000ms = 10분
+
+    return () => clearInterval(interval);
+  }, []);
 
   const currentTime = formatDateTime(new Date());
 
   return (
     <div>
       <div className="header">
+        <img src="https://rainbow-haupia-cd8290.netlify.app/GST_banner.jpg" alt="Build up GST Banner" />
         <h1>제조기술1팀 공장 대시보드 - {getCurrentWeek()}</h1>
         <p>실행 시간: {currentTime}</p>
       </div>
