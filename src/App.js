@@ -75,18 +75,17 @@ const FactoryDashboard = () => {
         // 1. Fetch weekly production data
         const weeklyResponse = await axios.get('/weekly_production.json');
         
-        // 2. Fetch monthly production data and other info
+        // 2. Fetch factory data (including summary_table)
         const token = await getAccessTokenSilently();
         const headers = { Authorization: `Bearer ${token}` };
 
-        const response = await axios.get(`https://pda-api-extract.up.railway.app/api/factory`, { headers });
-        const infoResponse = await axios.get(`https://pda-api-extract.up.railway.app/api/info?mode=monthly&month=${currentMonth}`, { headers });
+        const factoryResponse = await axios.get(`https://pda-api-extract.up.railway.app/api/factory`, { headers });
 
         setDashboardData({
           weekly_production: weeklyResponse.data || [],
-          monthly_production: response.data.monthly_production || [],
-          summary_table: infoResponse.data.summary_table || [],
-          weekly_production_message: response.data.weekly_production_message || ''
+          monthly_production: factoryResponse.data.monthly_production || [],
+          summary_table: factoryResponse.data.summary_table || [], // Use factoryResponse for summary_table
+          weekly_production_message: factoryResponse.data.weekly_production_message || ''
         });
         setLoading(false);
       } catch (err) {
@@ -98,20 +97,12 @@ const FactoryDashboard = () => {
     fetchData();
   }, [isAuthenticated]);
 
-  // 10분마다 새로고침
-  useEffect(() => {
-    const interval = setInterval(() => {
-      window.location.reload();
-    }, 1800000); // 600,000ms = 10분
-
-    return () => clearInterval(interval);
-  }, []);
-
   const currentTime = formatDateTime(new Date());
 
   return (
     <div>
       <div className="header">
+        <img src="https://rainbow-haupia-cd8290.netlify.app/GST_banner.jpg" alt="Build up GST Banner" />
         <h1>제조기술1팀 공장 대시보드 - {getCurrentWeek()}</h1>
         <p>실행 시간: {currentTime}</p>
       </div>
