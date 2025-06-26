@@ -1,7 +1,7 @@
 import React from 'react';
 
 const DefectChart = () => (
-  <div className="chart-section">
+  <div className="chart-section defect-chart">
     <iframe
       src="/pie_defect.html"
       style={{ width: '100%', height: '250px', border: 'none' }}
