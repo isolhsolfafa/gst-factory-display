@@ -1,6 +1,6 @@
 import { Auth0Provider, useAuth0 } from "@auth0/auth0-react";
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Route, Routes, Link, useNavigate, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router } from 'react-router-dom';
 import axios from 'axios';
 import WeeklyChart from './components/WeeklyChart';
 import MonthlyChart from './components/MonthlyChart';
@@ -97,11 +97,11 @@ const FactoryDashboard = () => {
     fetchData();
   }, [isAuthenticated]);
 
-  // 10분마다 새로고침
+  // 30분마다 새로고침
   useEffect(() => {
     const interval = setInterval(() => {
       window.location.reload();
-    }, 600000); // 600,000ms = 10분
+    }, 1800000); // 1,800,000ms = 30분
 
     return () => clearInterval(interval);
   }, []);
@@ -138,66 +138,8 @@ const FactoryDashboard = () => {
   );
 };
 
-// 협력사 대시보드 컴포넌트 (iframe으로 partner.html 연동)
-const PartnerDashboard = () => (
-  <iframe
-    src="/partner.html"
-    title="Partner Dashboard"
-    style={{ width: '100%', height: '95vh', border: 'none' }}
-  />
-);
-
-// 내부 대시보드 컴포넌트 (비밀번호 보호 포함, iframe으로 internal.html 연동)
-const InternalDashboard = () => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    const password = prompt("🔐 내부 대시보드 접근을 위한 비밀번호를 입력하세요:");
-    if (password === "0979") {
-      setIsAuthenticated(true);
-    } else {
-      alert("❌ 비밀번호가 틀렸습니다. 접근이 제한됩니다.");
-      navigate('/');
-    }
-  }, [navigate]);
-
-  if (!isAuthenticated) return null;
-
-  return (
-    <iframe
-      src="/internal.html"
-      title="Internal Dashboard"
-      style={{ width: '100%', height: '95vh', border: 'none' }}
-    />
-  );
-};
-
-const AuthButtons = () => {
-  const { loginWithRedirect, logout, isAuthenticated, user } = useAuth0();
-
-  if (isAuthenticated) {
-    return (
-      <div style={{ textAlign: 'right', padding: '10px' }}>
-        👤 {user.name} &nbsp;
-        <button onClick={() => logout({ logoutParams: { returnTo: window.location.origin } })}>
-          로그아웃
-        </button>
-      </div>
-    );
-  } else {
-    return (
-      <div style={{ textAlign: 'right', padding: '10px' }}>
-        <button onClick={() => loginWithRedirect()}>🔑 로그인</button>
-      </div>
-    );
-  }
-};
-
-// 메뉴탭과 라우팅을 포함한 메인 App 컴포넌트
+// 공장 모니터 전용 App 컴포넌트 (탭 메뉴 없음)
 const App = () => {
-  const location = useLocation();
-
   useEffect(() => {
     const script1 = document.createElement('script');
     script1.async = true;
@@ -214,37 +156,10 @@ const App = () => {
     document.head.appendChild(script2);
   }, []);
 
-  const getButtonStyle = (path) => ({
-    width: '100%',
-    padding: '14px 16px',
-    background: location.pathname === path ? '#007acc' : '#1a1a1a',
-    border: 'none',
-    color: 'white',
-    fontSize: '16px',
-    cursor: 'pointer'
-  });
-
   return (
     <div>
-      <AuthButtons />
-      <div className="tab" style={{ display: 'flex', background: '#1a1a1a', color: 'white' }}>
-        <Link to="/" style={{ textDecoration: 'none', flex: 1 }}>
-          <button style={getButtonStyle('/')}>🏭 공장 대시보드</button>
-        </Link>
-        <Link to="/partner" style={{ textDecoration: 'none', flex: 1 }}>
-          <button style={getButtonStyle('/partner')}>🤝 협력사 대시보드</button>
-        </Link>
-        <Link to="/internal" style={{ textDecoration: 'none', flex: 1 }}>
-          <button style={getButtonStyle('/internal')}>🔒 내부 대시보드</button>
-        </Link>
-      </div>
-      <div style={{ padding: '20px' }}>
-        <Routes>
-          <Route path="/" element={<FactoryDashboard />} />
-          <Route path="/partner" element={<PartnerDashboard />} />
-          <Route path="/internal" element={<InternalDashboard />} />
-        </Routes>
-      </div>
+      {/* 공장 모니터 전용: 탭 메뉴 없이 공장 대시보드만 표시 */}
+      <FactoryDashboard />
     </div>
   );
 };
